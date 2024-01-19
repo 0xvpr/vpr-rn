@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+
+"""
+Created by:     VPR
+Created:        November 29th, 2022
+
+Updated by:     VPR
+Updated:        January 18th, 2024
+
+Description:    A platform independent utility that can parse through directories
+                and rename file-types by a specified pattern.
+"""
+
+import os
+
+from argparse import ArgumentParser
+
+from typing import (
+    Any,
+    Dict,
+    Generator
+)
+
+from pathlib import (
+    Path
+)
+
+HISTORY_FILE = "$HOME"+"*_vpr-rn_history"
+
+def handle_args() -> Dict[str, Any]:
+    parser = ArgumentParser(
+        usage="\n"
+              "  vpr-rn [ -v | -p | -r | -d | -u ] {extension_to_match} {replacement_extension}\n"
+              "example:\n"
+              "  vpr-rn -rd /path/to/sources 'c' 'cpp'"
+       )
+
+    parser.add_argument(
+        "extension_to_match",
+        help="extension to match",
+        nargs="?",
+    )
+    parser.add_argument(
+        "replacement_extension",
+        help="replacement extension.",
+        nargs="?",
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        help="target directory to perform file renaming.",
+        dest='directory',
+        default=os.getcwd(),
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        help="do NOT prompt user for confirmation.",
+        dest='force',
+        default=False,
+        action="store_true"
+    )
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        help="recursively iterate through a directory.",
+        dest='recursive',
+        default=False,
+        action="store_true"
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        help="display extra information.",
+        dest='verbose',
+        default=False,
+        action="store_true"
+    )
+    parser.add_argument(
+        "-p",
+        "--print",
+        help="print operations without performing any actions.",
+        dest='print',
+        default=False,
+        action="store_true"
+    )
+    parser.add_argument(
+        "-u",
+        "--undo",
+        help="parse the latest history file and undo all successful operations.",
+        dest='undo',
+        default=False,
+        action="store_true"
+    )
+
+    args = parser.parse_args()
+    params = {
+        "recursive"             : args.recursive,
+        "directory"             : Path(args.directory).absolute(),
+        "force"                 : args.force,
+        "verbose"               : args.verbose,
+        "print"                 : args.print,
+        "undo"                  : args.undo,
+        "extension_to_match"    : "".join(args.extension_to_match) if args.extension_to_match else parser.print_help() and exit(1),
+        "replacement_extension" : "".join(args.replacement_extension) if args.replacement_extension else parser.print_help and exit(1),
+    }
+
+    return params
+
+def append_to_history_file(params: Dict[str,Any]) -> bool:
+    return True
+
+def execute_replacements(filenames: Generator[Path, None, None], params: Dict[str,Any]={}) -> bool:
+    if params['print']:
+        # Logging
+        for filename in filenames:
+            print(f"{filename} -> {str(filename).replace('.'+params['extension_to_match'], '.'+params['replacement_extension'])}")
+            print('\n')
+    elif params['verbose']:
+        for filename in filenames:
+            print(f"{filename} -> {str(filename).replace('.'+params['extension_to_match'], '.'+params['replacement_extension'])}")
+            print('\n')
+
+    return True
+
+def undo_replacements(history_file: str) -> int:
+    return 0
+
+if __name__ == "__main__":
+    params = handle_args()
+
+    # Check undo actions
+    if params['undo']:
+        # Check history file and attempt to undo actions in reverse
+        status = undo_replacements(HISTORY_FILE)
+        exit(status)
+
+    # Iterate through target directory
+    filenames = Path(params["directory"]).rglob(f"*.{params['extension_to_match']}")
+    if params['recursive']:
+        execute_replacements(filenames, params=params) 
+    else:
+        execute_replacements(filenames, params=params) 
